@@ -1,0 +1,338 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Calendar, CheckCircle2, Clock, FileText, Plus, Search, TrendingUp } from "lucide-react"
+import { format, isToday, isTomorrow, isPast } from "date-fns"
+import Link from "next/link"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { AIStatusIndicator } from "@/components/ai-status-indicator"
+
+interface Task {
+  id: string
+  title: string
+  description?: string
+  dueDate: Date
+  category: string
+  completed: boolean
+  priority: "low" | "medium" | "high"
+}
+
+interface Note {
+  id: string
+  title: string
+  content: string
+  createdAt: Date
+  tags: string[]
+}
+
+export default function Dashboard() {
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [notes, setNotes] = useState<Note[]>([])
+
+  useEffect(() => {
+    // Load sample data
+    const sampleTasks: Task[] = [
+      {
+        id: "1",
+        title: "Complete project proposal",
+        description: "Finish the Q4 project proposal for client review",
+        dueDate: new Date(2024, 11, 15),
+        category: "Work",
+        completed: false,
+        priority: "high",
+      },
+      {
+        id: "2",
+        title: "Team meeting preparation",
+        description: "Prepare agenda and materials for weekly team sync",
+        dueDate: new Date(2024, 11, 12),
+        category: "Work",
+        completed: false,
+        priority: "medium",
+      },
+      {
+        id: "3",
+        title: "Grocery shopping",
+        description: "Buy ingredients for weekend dinner party",
+        dueDate: new Date(2024, 11, 14),
+        category: "Personal",
+        completed: true,
+        priority: "low",
+      },
+      {
+        id: "4",
+        title: "Review quarterly reports",
+        description: "Analyze Q3 performance metrics",
+        dueDate: new Date(2024, 11, 10),
+        category: "Work",
+        completed: false,
+        priority: "high",
+      },
+    ]
+
+    const sampleNotes: Note[] = [
+      {
+        id: "1",
+        title: "Meeting Notes - Product Strategy",
+        content: "Discussed new feature roadmap, user feedback integration, and timeline for Q1 release.",
+        createdAt: new Date(2024, 11, 8),
+        tags: ["meeting", "strategy", "product"],
+      },
+      {
+        id: "2",
+        title: "Book Recommendations",
+        content: "The Lean Startup, Atomic Habits, Deep Work - recommended by colleagues for professional development.",
+        createdAt: new Date(2024, 11, 7),
+        tags: ["books", "learning", "development"],
+      },
+      {
+        id: "3",
+        title: "Weekend Project Ideas",
+        content: "Build a personal dashboard, learn React Native, organize home office space.",
+        createdAt: new Date(2024, 11, 6),
+        tags: ["projects", "personal", "ideas"],
+      },
+    ]
+
+    setTasks(sampleTasks)
+    setNotes(sampleNotes)
+  }, [])
+
+  const upcomingTasks = tasks
+    .filter((task) => !task.completed && !isPast(task.dueDate))
+    .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+    .slice(0, 5)
+
+  const overdueTasks = tasks.filter((task) => !task.completed && isPast(task.dueDate))
+  const completedTasks = tasks.filter((task) => task.completed)
+  const recentNotes = notes.slice(0, 3)
+
+  const getTaskDateLabel = (date: Date) => {
+    if (isToday(date)) return "Today"
+    if (isTomorrow(date)) return "Tomorrow"
+    if (isPast(date)) return "Overdue"
+    return format(date, "MMM d")
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "high":
+        return "bg-red-100 text-red-800"
+      case "medium":
+        return "bg-yellow-100 text-yellow-800"
+      case "low":
+        return "bg-green-100 text-green-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-background border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+              <p className="text-muted-foreground">Welcome back! Here's what's happening today.</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <AIStatusIndicator />
+              <ThemeToggle />
+              <Link href="/tasks">
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Task
+                </Button>
+              </Link>
+              <Link href="/notes">
+                <Button variant="outline">
+                  <FileText className="w-4 h-4 mr-2" />
+                  New Note
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Navigation */}
+      <nav className="bg-background border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8">
+            <Link href="/" className="border-b-2 border-primary py-4 px-1 text-primary font-medium">
+              Dashboard
+            </Link>
+            <Link href="/tasks" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              Tasks
+            </Link>
+            <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              Calendar
+            </Link>
+            <Link href="/notes" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              Notes
+            </Link>
+            <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              Search
+            </Link>
+            <Link href="/voice" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              Voice Assistant
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{tasks.length}</div>
+              <p className="text-xs text-muted-foreground">{completedTasks.length} completed</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+              <Clock className="h-4 w-4 text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{overdueTasks.length}</div>
+              <p className="text-xs text-muted-foreground">Need attention</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Notes</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{notes.length}</div>
+              <p className="text-xs text-muted-foreground">Ideas captured</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {Math.round((completedTasks.length / tasks.length) * 100)}%
+              </div>
+              <p className="text-xs text-muted-foreground">This week</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Upcoming Tasks */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Upcoming Tasks</CardTitle>
+              <CardDescription>Your next 5 tasks by due date</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {upcomingTasks.map((task) => (
+                  <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex-1">
+                      <h4 className="font-medium">{task.title}</h4>
+                      <p className="text-sm text-gray-600">{task.description}</p>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <Badge variant="outline">{task.category}</Badge>
+                        <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant={isPast(task.dueDate) ? "destructive" : "secondary"}>
+                        {getTaskDateLabel(task.dueDate)}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+                {upcomingTasks.length === 0 && <p className="text-gray-500 text-center py-4">No upcoming tasks</p>}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Notes</CardTitle>
+              <CardDescription>Your latest captured ideas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentNotes.map((note) => (
+                  <div key={note.id} className="p-3 border rounded-lg">
+                    <h4 className="font-medium mb-2">{note.title}</h4>
+                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">{note.content}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap gap-1">
+                        {note.tags.slice(0, 3).map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                      <span className="text-xs text-gray-500">{format(note.createdAt, "MMM d")}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common tasks to get you started</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Link href="/tasks">
+                <Button variant="outline" className="w-full justify-start bg-transparent">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Task
+                </Button>
+              </Link>
+              <Link href="/notes">
+                <Button variant="outline" className="w-full justify-start bg-transparent">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Write Note
+                </Button>
+              </Link>
+              <Link href="/calendar">
+                <Button variant="outline" className="w-full justify-start bg-transparent">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  View Calendar
+                </Button>
+              </Link>
+              <Link href="/search">
+                <Button variant="outline" className="w-full justify-start bg-transparent">
+                  <Search className="w-4 h-4 mr-2" />
+                  Search All
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  )
+}
