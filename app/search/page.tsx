@@ -48,19 +48,19 @@ export default function SearchPage() {
               <p className="text-muted-foreground">Find tasks and notes instantly</p>
             </div>
             <div className="flex items-center space-x-8">
-              <Link href="/" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              <Link href="/" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Dashboard">
                 Dashboard
               </Link>
-              <Link href="/tasks" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              <Link href="/tasks" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Tasks">
                 Tasks
               </Link>
-              <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Calendar">
                 Calendar
               </Link>
-              <Link href="/notes" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              <Link href="/notes" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Notes">
                 Notes
               </Link>
-              <Link href="/search" className="border-b-2 border-primary py-4 px-1 text-primary font-medium">
+              <Link href="/search" className="border-b-2 border-primary py-4 px-1 text-primary font-medium" aria-label="Search">
                 Search
               </Link>
             </div>

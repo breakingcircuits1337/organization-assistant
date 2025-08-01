@@ -72,14 +72,16 @@ export default function Dashboard() {
             <div className="flex items-center space-x-4">
               <AIStatusIndicator />
               <ThemeToggle />
-              <Link href="/tasks">
+              <Link href="/tasks" aria-label="Tasks">
                 <Button>
+                  <span className="sr-only">Create Task</span>
                   <Plus className="w-4 h-4 mr-2" />
                   New Task
                 </Button>
               </Link>
-              <Link href="/notes">
+              <Link href="/notes" aria-label="Notes">
                 <Button variant="outline">
+                  <span className="sr-only">Create Note</span>
                   <FileText className="w-4 h-4 mr-2" />
                   New Note
                 </Button>

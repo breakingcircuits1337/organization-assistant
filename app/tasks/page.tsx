@@ -288,21 +288,21 @@ export default function TasksPage() {
       <nav className="bg-background border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
-            <Link href="/" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Dashboard
-            </Link>
-            <Link href="/tasks" className="border-b-2 border-primary py-4 px-1 text-primary font-medium">
-              Tasks
-            </Link>
-            <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Calendar
-            </Link>
-            <Link href="/notes" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Notes
-            </Link>
-            <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Search
-            </Link>
+            <Link href="/" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Dashboard">
+                Dashboard
+              </Link>
+              <Link href="/tasks" className="border-b-2 border-primary py-4 px-1 text-primary font-medium" aria-label="Tasks">
+                Tasks
+              </Link>
+              <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Calendar">
+                Calendar
+              </Link>
+              <Link href="/notes" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Notes">
+                Notes
+              </Link>
+              <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Search">
+                Search
+              </Link>
           </div>
         </div>
       </nav>
@@ -393,7 +393,9 @@ export default function TasksPage() {
                       size="sm"
                       onClick={() => handleDeleteTask(task.id)}
                       className="text-red-500 hover:text-red-700"
+                      aria-label="Delete Task"
                     >
+                      <span className="sr-only">Delete Task</span>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>

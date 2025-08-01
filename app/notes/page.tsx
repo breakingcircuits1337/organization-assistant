@@ -45,19 +45,19 @@ export default function NotesPage() {
               <p className="text-muted-foreground">Your notes & ideas</p>
             </div>
             <div className="flex items-center space-x-8">
-              <Link href="/" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              <Link href="/" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Dashboard">
                 Dashboard
               </Link>
-              <Link href="/tasks" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              <Link href="/tasks" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Tasks">
                 Tasks
               </Link>
-              <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Calendar">
                 Calendar
               </Link>
-              <Link href="/notes" className="border-b-2 border-primary py-4 px-1 text-primary font-medium">
+              <Link href="/notes" className="border-b-2 border-primary py-4 px-1 text-primary font-medium" aria-label="Notes">
                 Notes
               </Link>
-              <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground">
+              <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Search">
                 Search
               </Link>
             </div>

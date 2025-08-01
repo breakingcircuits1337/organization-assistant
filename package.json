@@ -85,6 +85,8 @@
     "lint": "next lint",
     "start": "next start",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "storybook": "storybook dev -p 6006",
+    "test:e2e": "playwright test"
   }
 }

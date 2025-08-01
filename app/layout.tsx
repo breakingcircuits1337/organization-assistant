@@ -7,6 +7,8 @@ import { VoiceCommandOverlay } from "@/components/voice-command-overlay"
 import { VoiceCommandProvider } from "@/context/voice-command-context"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { ReminderManager } from "@/components/reminder-manager"
+import { CommandPalette } from "@/components/command-palette"
+import { KeyboardShortcutProvider } from "@/context/keyboard-shortcut-context"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -28,11 +30,14 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <ErrorBoundary>
             <ReminderManager />
-            <VoiceCommandProvider>
-              {children}
-              <GlobalVoiceAssistant />
-              <VoiceCommandOverlay />
-            </VoiceCommandProvider>
+            <KeyboardShortcutProvider>
+              <VoiceCommandProvider>
+                {children}
+                <GlobalVoiceAssistant />
+                <VoiceCommandOverlay />
+              </VoiceCommandProvider>
+              <CommandPalette />
+            </KeyboardShortcutProvider>
           </ErrorBoundary>
         </ThemeProvider>
       </body>
