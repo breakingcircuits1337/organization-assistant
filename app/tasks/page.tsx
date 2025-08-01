@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,21 +22,19 @@ import { CheckCircle2, Clock, Filter, Plus, Search, Trash2, Sparkles, Loader2 } 
 import { format, isPast, isToday, isTomorrow } from "date-fns"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { useVoiceCommandContext } from "@/context/voice-command-context" // Import the context
+import { useVoiceCommandContext } from "@/context/voice-command-context"
+import { useAppStore } from "@/lib/store"
+import type { Task } from "@/types/Task"
 
-interface Task {
-  id: string
-  title: string
-  description?: string
-  dueDate: Date
-  category: string
-  completed: boolean
-  priority: "low" | "medium" | "high"
-}
+const categories = ["Work", "Personal", "Health", "Learning", "Finance"]
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [filteredTasks, setFilteredTasks] = useState<Task[]>([])
+  const tasks = useAppStore((state) => state.tasks)
+  const addTask = useAppStore((state) => state.addTask)
+  const updateTask = useAppStore((state) => state.updateTask)
+  const deleteTask = useAppStore((state) => state.deleteTask)
+  const toggleTaskCompletion = useAppStore((state) => state.toggleTaskCompletion)
+
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
@@ -50,9 +48,7 @@ export default function TasksPage() {
   })
   const [isCategorizingTask, setIsCategorizingTask] = useState(false)
 
-  const categories = ["Work", "Personal", "Health", "Learning", "Finance"]
-
-  const { pendingTask, setPendingTask, triggerDialog, setTriggerDialog } = useVoiceCommandContext() // Use context
+  const { pendingTask, setPendingTask, triggerDialog, setTriggerDialog } = useVoiceCommandContext()
 
   // Effect to handle pending task from voice command
   useEffect(() => {
@@ -64,106 +60,43 @@ export default function TasksPage() {
         category: pendingTask.category || "",
         priority: pendingTask.priority || "medium",
       })
-      // Use a setTimeout to ensure the state update has rendered before opening the dialog
       const timer = setTimeout(() => {
         setIsDialogOpen(true)
-      }, 0) // A small delay, or even 0, can help
-
-      setPendingTask(null) // Clear pending task
-      setTriggerDialog(null) // Clear trigger
-
-      return () => clearTimeout(timer) // Cleanup the timer
+      }, 0)
+      setPendingTask(null)
+      setTriggerDialog(null)
+      return () => clearTimeout(timer)
     }
   }, [pendingTask, triggerDialog, setPendingTask, setTriggerDialog])
 
-  useEffect(() => {
-    // Load sample data
-    const sampleTasks: Task[] = [
-      {
-        id: "1",
-        title: "Complete project proposal",
-        description: "Finish the Q4 project proposal for client review",
-        dueDate: new Date(2024, 11, 15),
-        category: "Work",
-        completed: false,
-        priority: "high",
-      },
-      {
-        id: "2",
-        title: "Team meeting preparation",
-        description: "Prepare agenda and materials for weekly team sync",
-        dueDate: new Date(2024, 11, 12),
-        category: "Work",
-        completed: false,
-        priority: "medium",
-      },
-      {
-        id: "3",
-        title: "Grocery shopping",
-        description: "Buy ingredients for weekend dinner party",
-        dueDate: new Date(2024, 11, 14),
-        category: "Personal",
-        completed: true,
-        priority: "low",
-      },
-      {
-        id: "4",
-        title: "Review quarterly reports",
-        description: "Analyze Q3 performance metrics",
-        dueDate: new Date(2024, 11, 10),
-        category: "Work",
-        completed: false,
-        priority: "high",
-      },
-      {
-        id: "5",
-        title: "Gym workout",
-        description: "Upper body strength training session",
-        dueDate: new Date(2024, 11, 13),
-        category: "Health",
-        completed: false,
-        priority: "medium",
-      },
-      {
-        id: "6",
-        title: "Read chapter 5",
-        description: 'Continue reading "Atomic Habits"',
-        dueDate: new Date(2024, 11, 16),
-        category: "Learning",
-        completed: false,
-        priority: "low",
-      },
-    ]
-    setTasks(sampleTasks)
-  }, [])
-
-  useEffect(() => {
+  // Filtering and search
+  const filteredTasks = useMemo(() => {
     let filtered = tasks
 
-    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(
         (task) =>
           task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          task.description?.toLowerCase().includes(searchTerm.toLowerCase()),
+          task.description?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
-    // Filter by category
     if (filterCategory !== "all") {
       filtered = filtered.filter((task) => task.category === filterCategory)
     }
 
-    // Filter by status
     if (filterStatus === "completed") {
       filtered = filtered.filter((task) => task.completed)
     } else if (filterStatus === "pending") {
       filtered = filtered.filter((task) => !task.completed)
     } else if (filterStatus === "overdue") {
-      filtered = filtered.filter((task) => !task.completed && isPast(task.dueDate))
+      filtered = filtered.filter((task) => {
+        const dueDate = new Date(task.dueDate)
+        return !task.completed && isPast(dueDate)
+      })
     }
 
-    setFilteredTasks(filtered)
+    return filtered
   }, [tasks, searchTerm, filterCategory, filterStatus])
 
   const handleCreateTask = () => {
@@ -173,13 +106,13 @@ export default function TasksPage() {
       id: Date.now().toString(),
       title: newTask.title,
       description: newTask.description,
-      dueDate: new Date(newTask.dueDate),
+      dueDate: new Date(newTask.dueDate).toISOString(),
       category: newTask.category,
       completed: false,
       priority: newTask.priority,
     }
 
-    setTasks([...tasks, task])
+    addTask(task)
     setNewTask({
       title: "",
       description: "",
@@ -190,15 +123,16 @@ export default function TasksPage() {
     setIsDialogOpen(false)
   }
 
-  const toggleTaskCompletion = (taskId: string) => {
-    setTasks(tasks.map((task) => (task.id === taskId ? { ...task, completed: !task.completed } : task)))
+  const handleToggleTaskCompletion = (taskId: string) => {
+    toggleTaskCompletion(taskId)
   }
 
-  const deleteTask = (taskId: string) => {
-    setTasks(tasks.filter((task) => task.id !== taskId))
+  const handleDeleteTask = (taskId: string) => {
+    deleteTask(taskId)
   }
 
-  const getTaskDateLabel = (date: Date) => {
+  const getTaskDateLabel = (dateString: string) => {
+    const date = new Date(dateString)
     if (isToday(date)) return "Today"
     if (isTomorrow(date)) return "Tomorrow"
     if (isPast(date)) return "Overdue"
@@ -434,47 +368,50 @@ export default function TasksPage() {
 
         {/* Tasks List */}
         <div className="space-y-4">
-          {filteredTasks.map((task) => (
-            <Card key={task.id} className={`${task.completed ? "opacity-60" : ""}`}>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4 flex-1">
-                    <Checkbox
-                      checked={task.completed}
-                      onCheckedChange={() => toggleTaskCompletion(task.id)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <h3 className={`font-semibold ${task.completed ? "line-through text-gray-500" : ""}`}>
-                        {task.title}
-                      </h3>
-                      {task.description && (
-                        <p className={`text-sm mt-1 ${task.completed ? "text-gray-400" : "text-gray-600"}`}>
-                          {task.description}
-                        </p>
-                      )}
-                      <div className="flex items-center space-x-2 mt-3">
-                        <Badge variant="outline">{task.category}</Badge>
-                        <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
-                        <Badge variant={isPast(task.dueDate) && !task.completed ? "destructive" : "secondary"}>
-                          <Clock className="w-3 h-3 mr-1" />
-                          {getTaskDateLabel(task.dueDate)}
-                        </Badge>
+          {filteredTasks.map((task) => {
+            const dueDate = new Date(task.dueDate)
+            return (
+              <Card key={task.id} className={`${task.completed ? "opacity-60" : ""}`}>
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4 flex-1">
+                      <Checkbox
+                        checked={task.completed}
+                        onCheckedChange={() => handleToggleTaskCompletion(task.id)}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <h3 className={`font-semibold ${task.completed ? "line-through text-gray-500" : ""}`}>
+                          {task.title}
+                        </h3>
+                        {task.description && (
+                          <p className={`text-sm mt-1 ${task.completed ? "text-gray-400" : "text-gray-600"}`}>
+                            {task.description}
+                          </p>
+                        )}
+                        <div className="flex items-center space-x-2 mt-3">
+                          <Badge variant="outline">{task.category}</Badge>
+                          <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
+                          <Badge variant={isPast(dueDate) && !task.completed ? "destructive" : "secondary"}>
+                            <Clock className="w-3 h-3 mr-1" />
+                            {getTaskDateLabel(task.dueDate)}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteTask(task.id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          })}
           {filteredTasks.length === 0 && (
             <Card>
               <CardContent className="pt-6">

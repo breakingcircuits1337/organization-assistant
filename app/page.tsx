@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,112 +9,48 @@ import { format, isToday, isTomorrow, isPast } from "date-fns"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AIStatusIndicator } from "@/components/ai-status-indicator"
-
-interface Task {
-  id: string
-  title: string
-  description?: string
-  dueDate: Date
-  category: string
-  completed: boolean
-  priority: "low" | "medium" | "high"
-}
-
-interface Note {
-  id: string
-  title: string
-  content: string
-  createdAt: Date
-  tags: string[]
-}
+import { useAppStore } from "@/lib/store"
+import type { Task } from "@/types/Task"
+import type { Note } from "@/types/Note"
 
 export default function Dashboard() {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [notes, setNotes] = useState<Note[]>([])
+  const tasks = useAppStore((state) => state.tasks)
+  const notes = useAppStore((state) => state.notes)
 
-  useEffect(() => {
-    // Load sample data
-    const sampleTasks: Task[] = [
-      {
-        id: "1",
-        title: "Complete project proposal",
-        description: "Finish the Q4 project proposal for client review",
-        dueDate: new Date(2024, 11, 15),
-        category: "Work",
-        completed: false,
-        priority: "high",
-      },
-      {
-        id: "2",
-        title: "Team meeting preparation",
-        description: "Prepare agenda and materials for weekly team sync",
-        dueDate: new Date(2024, 11, 12),
-        category: "Work",
-        completed: false,
-        priority: "medium",
-      },
-      {
-        id: "3",
-        title: "Grocery shopping",
-        description: "Buy ingredients for weekend dinner party",
-        dueDate: new Date(2024, 11, 14),
-        category: "Personal",
-        completed: true,
-        priority: "low",
-      },
-      {
-        id: "4",
-        title: "Review quarterly reports",
-        description: "Analyze Q3 performance metrics",
-        dueDate: new Date(2024, 11, 10),
-        category: "Work",
-        completed: false,
-        priority: "high",
-      },
-    ]
+  // Parse dates for tasks
+  const parsedTasks = useMemo(
+    () =>
+      tasks.map((task) => ({
+        ...task,
+        dueDateObj: new Date(task.dueDate),
+      })),
+    [tasks]
+  )
 
-    const sampleNotes: Note[] = [
-      {
-        id: "1",
-        title: "Meeting Notes - Product Strategy",
-        content: "Discussed new feature roadmap, user feedback integration, and timeline for Q1 release.",
-        createdAt: new Date(2024, 11, 8),
-        tags: ["meeting", "strategy", "product"],
-      },
-      {
-        id: "2",
-        title: "Book Recommendations",
-        content: "The Lean Startup, Atomic Habits, Deep Work - recommended by colleagues for professional development.",
-        createdAt: new Date(2024, 11, 7),
-        tags: ["books", "learning", "development"],
-      },
-      {
-        id: "3",
-        title: "Weekend Project Ideas",
-        content: "Build a personal dashboard, learn React Native, organize home office space.",
-        createdAt: new Date(2024, 11, 6),
-        tags: ["projects", "personal", "ideas"],
-      },
-    ]
+  // Parse dates for notes
+  const parsedNotes = useMemo(
+    () =>
+      notes.map((note) => ({
+        ...note,
+        createdAtObj: new Date(note.createdAt),
+      })),
+    [notes]
+  )
 
-    setTasks(sampleTasks)
-    setNotes(sampleNotes)
-  }, [])
-
-  const upcomingTasks = tasks
-    .filter((task) => !task.completed && !isPast(task.dueDate))
-    .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+  const upcomingTasks = parsedTasks
+    .filter((task) => !task.completed && !isPast(task.dueDateObj))
+    .sort((a, b) => a.dueDateObj.getTime() - b.dueDateObj.getTime())
     .slice(0, 5)
 
-  const overdueTasks = tasks.filter((task) => !task.completed && isPast(task.dueDate))
-  const completedTasks = tasks.filter((task) => task.completed)
-  const recentNotes = notes.slice(0, 3)
+  const overdueTasks = parsedTasks.filter((task) => !task.completed && isPast(task.dueDateObj))
+  const completedTasks = parsedTasks.filter((task) => task.completed)
+  const recentNotes = parsedNotes.slice(0, 3)
 
-  const getTaskDateLabel = (date: Date) => {
-    if (isToday(date)) return "Today"
-    if (isTomorrow(date)) return "Tomorrow"
-    if (isPast(date)) return "Overdue"
-    return format(date, "MMM d")
+  const getTaskDateLabel = (dateObj: Date) => {
+    if (isToday(dateObj)) return "Today"
+    if (isTomorrow(dateObj)) return "Tomorrow"
+    if (isPast(dateObj)) return "Overdue"
+    return format(dateObj, "MMM d")
   }
 
   const getPriorityColor = (priority: string) => {
@@ -196,7 +132,7 @@ export default function Dashboard() {
               <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{tasks.length}</div>
+              <div className="text-2xl font-bold">{parsedTasks.length}</div>
               <p className="text-xs text-muted-foreground">{completedTasks.length} completed</p>
             </CardContent>
           </Card>
@@ -218,7 +154,7 @@ export default function Dashboard() {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{notes.length}</div>
+              <div className="text-2xl font-bold">{parsedNotes.length}</div>
               <p className="text-xs text-muted-foreground">Ideas captured</p>
             </CardContent>
           </Card>
@@ -230,7 +166,9 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {Math.round((completedTasks.length / tasks.length) * 100)}%
+                {parsedTasks.length === 0
+                  ? "0%"
+                  : Math.round((completedTasks.length / parsedTasks.length) * 100) + "%"}
               </div>
               <p className="text-xs text-muted-foreground">This week</p>
             </CardContent>
@@ -257,8 +195,8 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <Badge variant={isPast(task.dueDate) ? "destructive" : "secondary"}>
-                        {getTaskDateLabel(task.dueDate)}
+                      <Badge variant={isPast(task.dueDateObj) ? "destructive" : "secondary"}>
+                        {getTaskDateLabel(task.dueDateObj)}
                       </Badge>
                     </div>
                   </div>
@@ -288,7 +226,7 @@ export default function Dashboard() {
                           </Badge>
                         ))}
                       </div>
-                      <span className="text-xs text-gray-500">{format(note.createdAt, "MMM d")}</span>
+                      <span className="text-xs text-gray-500">{format(note.createdAtObj, "MMM d")}</span>
                     </div>
                   </div>
                 ))}
