@@ -6,6 +6,7 @@ import { GlobalVoiceAssistant } from "@/components/global-voice-assistant"
 import { VoiceCommandOverlay } from "@/components/voice-command-overlay"
 import { VoiceCommandProvider } from "@/context/voice-command-context"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { ReminderManager } from "@/components/reminder-manager"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -26,6 +27,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <ErrorBoundary>
+            <ReminderManager />
             <VoiceCommandProvider>
               {children}
               <GlobalVoiceAssistant />

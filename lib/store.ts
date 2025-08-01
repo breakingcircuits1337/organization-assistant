@@ -31,10 +31,13 @@ export const useAppStore = create<Store>((set, get) => ({
   },
 
   addTask: async (task) => {
+    // Accept tags property if present
+    const payload = { ...task }
+    if (task.tags) payload.tags = task.tags
     const res = await fetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(task),
+      body: JSON.stringify(payload),
     })
     if (res.ok) {
       const newTask = await res.json()

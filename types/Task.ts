@@ -6,4 +6,5 @@ export interface Task {
   category: string
   completed: boolean
   priority: "low" | "medium" | "high"
+  tags?: string[]
 }
