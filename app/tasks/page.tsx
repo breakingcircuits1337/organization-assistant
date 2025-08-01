@@ -34,6 +34,7 @@ export default function TasksPage() {
   const updateTask = useAppStore((state) => state.updateTask)
   const deleteTask = useAppStore((state) => state.deleteTask)
   const toggleTaskCompletion = useAppStore((state) => state.toggleTaskCompletion)
+  const applyBulkOperations = useAppStore((state) => state.applyBulkOperations)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState("all")
@@ -47,6 +48,9 @@ export default function TasksPage() {
     priority: "medium" as "low" | "medium" | "high",
   })
   const [isCategorizingTask, setIsCategorizingTask] = useState(false)
+  const [isSuggestingDate, setIsSuggestingDate] = useState(false)
+  const [bulkCommand, setBulkCommand] = useState("")
+  const [isRunningBulk, setIsRunningBulk] = useState(false)
 
   const { pendingTask, setPendingTask, triggerDialog, setTriggerDialog } = useVoiceCommandContext()
 
@@ -118,6 +122,41 @@ export default function TasksPage() {
       priority: "medium",
     })
     setIsDialogOpen(false)
+  }
+
+  const handleSuggestDate = async () => {
+    setIsSuggestingDate(true)
+    try {
+      const res = await fetch("/api/ai/suggest-due-date", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTask.title, description: newTask.description }),
+      })
+      if (res.ok) {
+        const { suggestedDate } = await res.json()
+        setNewTask((nt) => ({ ...nt, dueDate: suggestedDate }))
+      }
+    } finally {
+      setIsSuggestingDate(false)
+    }
+  }
+
+  const handleBulkRun = async () => {
+    setIsRunningBulk(true)
+    try {
+      const res = await fetch("/api/ai/bulk-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commandText: bulkCommand }),
+      })
+      if (res.ok) {
+        const ops = await res.json()
+        applyBulkOperations(ops)
+      }
+    } finally {
+      setIsRunningBulk(false)
+      setBulkCommand("")
+    }
   }
 
   const handleToggleTaskCompletion = (taskId: string) => {
@@ -217,6 +256,15 @@ export default function TasksPage() {
                         value={newTask.dueDate}
                         onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
                       />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-1"
+                        onClick={handleSuggestDate}
+                        disabled={!newTask.title || isSuggestingDate}
+                      >
+                        {isSuggestingDate ? "Suggesting..." : "AI Suggest Date"}
+                      </Button>
                     </div>
                     <div className="grid gap-2">
                       <div className="flex items-center justify-between">
@@ -351,6 +399,23 @@ export default function TasksPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="flex flex-col md:flex-row gap-4 mt-4 items-center">
+              <Input
+                placeholder="Ask AI to edit tasks..."
+                value={bulkCommand}
+                onChange={e => setBulkCommand(e.target.value)}
+                className="flex-1"
+                disabled={isRunningBulk}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkRun}
+                disabled={!bulkCommand || isRunningBulk}
+              >
+                {isRunningBulk ? "Running..." : "Run"}
+              </Button>
             </div>
           </CardContent>
         </Card>

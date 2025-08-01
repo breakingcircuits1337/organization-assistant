@@ -2,6 +2,12 @@ import { create } from "zustand"
 import type { Task } from "@/types/Task"
 import type { Note } from "@/types/Note"
 
+type BulkOp = {
+  type: "update" | "toggle"
+  filter?: { overdue?: boolean }
+  data?: Partial<Task>
+}
+
 type Store = {
   tasks: Task[]
   notes: Note[]
@@ -14,6 +20,7 @@ type Store = {
   addNote: (note: Note) => Promise<void>
   updateNote: (id: string, data: Partial<Note>) => Promise<void>
   deleteNote: (id: string) => Promise<void>
+  applyBulkOperations: (ops: BulkOp[]) => void
 }
 
 export const useAppStore = create<Store>((set, get) => ({
@@ -108,4 +115,25 @@ export const useAppStore = create<Store>((set, get) => ({
       }))
     }
   },
+
+  applyBulkOperations: (ops) => {
+    let state = get()
+    ops.forEach(op => {
+      let filtered = state.tasks
+      if (op.filter?.overdue !== undefined) {
+        const now = new Date()
+        filtered = filtered.filter(
+          t => ((new Date(t.dueDate) < now) === op.filter!.overdue)
+        )
+      }
+      filtered.forEach(task => {
+        if (op.type === "update" && op.data) {
+          get().updateTask(task.id, op.data)
+        }
+        if (op.type === "toggle") {
+          get().toggleTaskCompletion(task.id)
+        }
+      })
+    })
+  }
 }))

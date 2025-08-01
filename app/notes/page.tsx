@@ -13,11 +13,16 @@ export default function NotesPage() {
   const notes = useAppStore((s) => s.notes)
   const hydrate = useAppStore((s) => s.hydrate)
   const addNote = useAppStore((s) => s.addNote)
+  const updateNote = useAppStore((s) => s.updateNote)
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [tags, setTags] = useState("")
+
+  const [rewriteId, setRewriteId] = useState<string | null>(null)
+  const [rewriteTone, setRewriteTone] = useState("concise")
+  const [isRewriting, setIsRewriting] = useState(false)
 
   useEffect(() => { hydrate() }, [hydrate])
 
@@ -35,6 +40,24 @@ export default function NotesPage() {
     setIsDialogOpen(false)
   }
 
+  const handleRewrite = async (id: string, content: string, tone: string) => {
+    setIsRewriting(true)
+    try {
+      const res = await fetch("/api/ai/rewrite-note", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, tone }),
+      })
+      if (res.ok) {
+        const { rewritten } = await res.json()
+        await updateNote(id, { content: rewritten })
+      }
+      setRewriteId(null)
+    } finally {
+      setIsRewriting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-background border-b border-border">
@@ -45,19 +68,19 @@ export default function NotesPage() {
               <p className="text-muted-foreground">Your notes & ideas</p>
             </div>
             <div className="flex items-center space-x-8">
-              <Link href="/" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Dashboard">
+              <Link href="/" className="py-4 px-1 text-muted-foreground hover:text-foreground">
                 Dashboard
               </Link>
-              <Link href="/tasks" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Tasks">
+              <Link href="/tasks" className="py-4 px-1 text-muted-foreground hover:text-foreground">
                 Tasks
               </Link>
-              <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Calendar">
+              <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground">
                 Calendar
               </Link>
-              <Link href="/notes" className="border-b-2 border-primary py-4 px-1 text-primary font-medium" aria-label="Notes">
+              <Link href="/notes" className="border-b-2 border-primary py-4 px-1 text-primary font-medium">
                 Notes
               </Link>
-              <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Search">
+              <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground">
                 Search
               </Link>
             </div>
@@ -105,10 +128,57 @@ export default function NotesPage() {
               <div className="text-gray-700 text-sm mb-1">
                 {note.content.replace(/<[^>]+>/g, "").slice(0, 100)}{note.content.length > 100 ? "..." : ""}
               </div>
-              <div className="flex gap-1 flex-wrap">
+              <div className="flex gap-1 flex-wrap mb-2">
                 {note.tags?.map((tag) => (
                   <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>
                 ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setRewriteId(note.id)}
+                disabled={isRewriting}
+                className="mt-1"
+              >
+                Rewrite
+              </Button>
+              {rewriteId === note.id && (
+                <Dialog open onOpenChange={() => setRewriteId(null)}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Rewrite Note</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-3 py-2">
+                      <label htmlFor="tone">Tone:</label>
+                      <select
+                        id="tone"
+                        value={rewriteTone}
+                        onChange={e => setRewriteTone(e.target.value)}
+                        className="border rounded p-1"
+                      >
+                        <option value="concise">Concise</option>
+                        <option value="professional">Professional</option>
+                        <option value="friendly">Friendly</option>
+                      </select>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        onClick={() => handleRewrite(note.id, note.content, rewriteTone)}
+                        disabled={isRewriting}
+                      >
+                        {isRewriting ? "Rewriting..." : "Rewrite"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+          ))}
+        </div>
+      </main>
+    </div>
+  )
+}
               </div>
             </div>
           ))}
