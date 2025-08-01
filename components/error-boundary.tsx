@@ -1,4 +1,5 @@
 import React from "react"
+import * as Sentry from "@sentry/nextjs"
 
 type Props = {
   children: React.ReactNode
@@ -20,12 +21,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Optionally log error to an error reporting service
-    // console.error(error, info)
+    Sentry.captureException(error)
   }
 
   handleRetry() {
-    // Reload the page on retry
     window.location.reload()
   }
 

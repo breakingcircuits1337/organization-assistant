@@ -1,0 +1,11 @@
+{
+  "package": {
+    "productName": "Organizational Assistant",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "bundle": {
+      "identifier": "com.orgassistant.app"
+    }
+  }
+}

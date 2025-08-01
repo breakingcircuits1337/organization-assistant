@@ -13,6 +13,8 @@
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "latest",
     "next-auth": "latest",
+    "next-pwa": "latest",
+    "@sentry/nextjs": "latest",
     "react-big-calendar": "latest",
     "@tiptap/react": "latest",
     "@tiptap/starter-kit": "latest",

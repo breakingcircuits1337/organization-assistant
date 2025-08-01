@@ -95,24 +95,27 @@ export default function Dashboard() {
       <nav className="bg-background border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
-            <Link href="/" className="border-b-2 border-primary py-4 px-1 text-primary font-medium">
-              Dashboard
-            </Link>
-            <Link href="/tasks" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Tasks
-            </Link>
-            <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Calendar
-            </Link>
-            <Link href="/notes" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Notes
-            </Link>
-            <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Search
-            </Link>
-            <Link href="/voice" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Voice Assistant
-            </Link>
+            <Link href="/" className="border-b-2 border-primary py-4 px-1 text-primary font-medium" aria-label="Dashboard">
+                Dashboard
+              </Link>
+              <Link href="/tasks" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Tasks">
+                Tasks
+              </Link>
+              <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Calendar">
+                Calendar
+              </Link>
+              <Link href="/notes" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Notes">
+                Notes
+              </Link>
+              <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Search">
+                Search
+              </Link>
+              <Link href="/voice" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Voice Assistant">
+                Voice Assistant
+              </Link>
+              <Link href="/account" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Account">
+                Account
+              </Link>
           </div>
         </div>
       </nav>
