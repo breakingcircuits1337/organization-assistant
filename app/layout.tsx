@@ -4,7 +4,11 @@ import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { GlobalVoiceAssistant } from "@/components/global-voice-assistant"
 import { VoiceCommandOverlay } from "@/components/voice-command-overlay"
-import { VoiceCommandProvider } from "@/context/voice-command-context" // Import the new provider
+import { VoiceCommandProvider } from "@/context/voice-command-context"
+import { ErrorBoundary } from "@/components/error-boundary"
+import { ReminderManager } from "@/components/reminder-manager"
+import { CommandPalette } from "@/components/command-palette"
+import { KeyboardShortcutProvider } from "@/context/keyboard-shortcut-context"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -12,7 +16,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Organizational Assistant",
   description: "A comprehensive task management and note-taking application with AI features",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -24,13 +28,17 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <VoiceCommandProvider>
-            {" "}
-            {/* Wrap children with the provider */}
-            {children}
-            <GlobalVoiceAssistant />
-            <VoiceCommandOverlay />
-          </VoiceCommandProvider>
+          <ErrorBoundary>
+            <ReminderManager />
+            <KeyboardShortcutProvider>
+              <VoiceCommandProvider>
+                {children}
+                <GlobalVoiceAssistant />
+                <VoiceCommandOverlay />
+              </VoiceCommandProvider>
+              <CommandPalette />
+            </KeyboardShortcutProvider>
+          </ErrorBoundary>
         </ThemeProvider>
       </body>
     </html>

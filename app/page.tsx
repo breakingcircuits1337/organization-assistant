@@ -5,11 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, CheckCircle2, Clock, FileText, Plus, Search, TrendingUp } from "lucide-react"
-import { format, isToday, isTomorrow, isPast } from "date-fns"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AIStatusIndicator } from "@/components/ai-status-indicator"
 import { useAppStore } from "@/lib/store"
+import { friendlyLabel, toDate, isOverdue } from "@/lib/date"
 import type { Task } from "@/types/Task"
 import type { Note } from "@/types/Note"
 
@@ -22,7 +22,7 @@ export default function Dashboard() {
     () =>
       tasks.map((task) => ({
         ...task,
-        dueDateObj: new Date(task.dueDate),
+        dueDateObj: toDate(task.dueDate),
       })),
     [tasks]
   )
@@ -32,26 +32,19 @@ export default function Dashboard() {
     () =>
       notes.map((note) => ({
         ...note,
-        createdAtObj: new Date(note.createdAt),
+        createdAtObj: toDate(note.createdAt),
       })),
     [notes]
   )
 
   const upcomingTasks = parsedTasks
-    .filter((task) => !task.completed && !isPast(task.dueDateObj))
+    .filter((task) => !task.completed && !isOverdue(task.dueDate))
     .sort((a, b) => a.dueDateObj.getTime() - b.dueDateObj.getTime())
     .slice(0, 5)
 
-  const overdueTasks = parsedTasks.filter((task) => !task.completed && isPast(task.dueDateObj))
+  const overdueTasks = parsedTasks.filter((task) => !task.completed && isOverdue(task.dueDate))
   const completedTasks = parsedTasks.filter((task) => task.completed)
   const recentNotes = parsedNotes.slice(0, 3)
-
-  const getTaskDateLabel = (dateObj: Date) => {
-    if (isToday(dateObj)) return "Today"
-    if (isTomorrow(dateObj)) return "Tomorrow"
-    if (isPast(dateObj)) return "Overdue"
-    return format(dateObj, "MMM d")
-  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -79,14 +72,16 @@ export default function Dashboard() {
             <div className="flex items-center space-x-4">
               <AIStatusIndicator />
               <ThemeToggle />
-              <Link href="/tasks">
+              <Link href="/tasks" aria-label="Tasks">
                 <Button>
+                  <span className="sr-only">Create Task</span>
                   <Plus className="w-4 h-4 mr-2" />
                   New Task
                 </Button>
               </Link>
-              <Link href="/notes">
+              <Link href="/notes" aria-label="Notes">
                 <Button variant="outline">
+                  <span className="sr-only">Create Note</span>
                   <FileText className="w-4 h-4 mr-2" />
                   New Note
                 </Button>
@@ -100,24 +95,27 @@ export default function Dashboard() {
       <nav className="bg-background border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
-            <Link href="/" className="border-b-2 border-primary py-4 px-1 text-primary font-medium">
-              Dashboard
-            </Link>
-            <Link href="/tasks" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Tasks
-            </Link>
-            <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Calendar
-            </Link>
-            <Link href="/notes" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Notes
-            </Link>
-            <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Search
-            </Link>
-            <Link href="/voice" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Voice Assistant
-            </Link>
+            <Link href="/" className="border-b-2 border-primary py-4 px-1 text-primary font-medium" aria-label="Dashboard">
+                Dashboard
+              </Link>
+              <Link href="/tasks" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Tasks">
+                Tasks
+              </Link>
+              <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Calendar">
+                Calendar
+              </Link>
+              <Link href="/notes" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Notes">
+                Notes
+              </Link>
+              <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Search">
+                Search
+              </Link>
+              <Link href="/voice" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Voice Assistant">
+                Voice Assistant
+              </Link>
+              <Link href="/account" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Account">
+                Account
+              </Link>
           </div>
         </div>
       </nav>
@@ -195,8 +193,8 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <Badge variant={isPast(task.dueDateObj) ? "destructive" : "secondary"}>
-                        {getTaskDateLabel(task.dueDateObj)}
+                      <Badge variant={isOverdue(task.dueDate) ? "destructive" : "secondary"}>
+                        {friendlyLabel(task.dueDate)}
                       </Badge>
                     </div>
                   </div>

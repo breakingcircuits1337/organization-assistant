@@ -1,20 +1,24 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { generateText } from "ai"
-import { google } from "@ai-sdk/google"
+import { NextResponse } from "next/server"
+import { z } from "zod"
+import { generateJson, rateLimited } from "@/lib/ai"
+import { checkRateLimit } from "@/lib/rate-limit"
 
-// Enhanced fallback parsing for voice tasks
+const TaskParseSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  dueDate: z.string(),
+  category: z.string(),
+  priority: z.enum(["low", "medium", "high"]),
+})
+
 function parseTaskFallback(transcript: string) {
   const words = transcript.toLowerCase().split(" ")
-
-  // Extract priority
   let priority = "medium"
   if (words.some((w) => ["high", "urgent", "important", "critical"].includes(w))) {
     priority = "high"
   } else if (words.some((w) => ["low", "minor", "later"].includes(w))) {
     priority = "low"
   }
-
-  // Extract category
   let category = ""
   const categoryMap = {
     work: ["work", "job", "office", "meeting", "project", "client"],
@@ -23,18 +27,14 @@ function parseTaskFallback(transcript: string) {
     learning: ["learn", "study", "read", "course", "book"],
     finance: ["finance", "money", "pay", "bill", "budget"],
   }
-
   for (const [cat, keywords] of Object.entries(categoryMap)) {
     if (keywords.some((keyword) => words.includes(keyword))) {
       category = cat.charAt(0).toUpperCase() + cat.slice(1)
       break
     }
   }
-
-  // Extract date references
   let dueDate = ""
   const today = new Date()
-
   if (words.includes("today")) {
     dueDate = today.toISOString().split("T")[0]
   } else if (words.includes("tomorrow")) {
@@ -55,7 +55,6 @@ function parseTaskFallback(transcript: string) {
     nextMonth.setMonth(nextMonth.getMonth() + 1)
     dueDate = nextMonth.toISOString().split("T")[0]
   }
-
   return {
     title: transcript,
     description: "",
@@ -65,23 +64,17 @@ function parseTaskFallback(transcript: string) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
+  const { limited, retryAfter } = checkRateLimit(req)
+  if (limited) return NextResponse.json({ error: "Too many requests", retryAfter }, { status: 429 })
+
   try {
-    const { transcript } = await request.json()
-    console.log(`parse-voice-task/route: Incoming transcript: "${transcript}"`)
+    const { transcript } = await req.json()
+    if (!transcript) return NextResponse.json({ error: "Transcript is required" }, { status: 400 })
 
-    if (!transcript) {
-      console.log("parse-voice-task/route: No transcript provided.")
-      return NextResponse.json({ error: "Transcript is required" }, { status: 400 })
-    }
-
-    // Try AI parsing first
     if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       try {
-        console.log("parse-voice-task/route: Attempting AI parsing.")
-        const { text } = await generateText({
-          model: google("gemini-1.5-flash"),
-          prompt: `Parse this voice input into a structured task. Extract the task title, an optional description, a due date, a category, and a priority.
+        const prompt = `Parse this voice input into a structured task. Extract the task title, an optional description, a due date, a category, and a priority.
 
 Voice Input: "${transcript}"
 
@@ -98,24 +91,32 @@ Return a JSON object with the following structure:
   "priority": "low|medium|high"
 }
 
-Be smart about interpreting natural language. If a field is unclear or not mentioned, use the default or an empty string as specified. The title should capture the main action.`,
-        })
+Be smart about interpreting natural language. If a field is unclear or not mentioned, use the default or an empty string as specified. The title should capture the main action.`
 
-        const parsedTask = JSON.parse(text)
-        console.log("parse-voice-task/route: AI parsed task:", parsedTask)
-        return NextResponse.json(parsedTask)
+        // Use rateLimited + generateJson
+        const json = await rateLimited(
+          prompt + transcript,
+          () => generateJson(prompt, TaskParseSchema),
+          // very naive: just a stub for IP, not real
+          req.headers.get("x-forwarded-for") || ""
+        )
+
+        // For streaming: just stream the JSON object as string
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(JSON.stringify(json)))
+            controller.close()
+          },
+        })
+        return new Response(stream, { headers: { "Content-Type": "application/json" } })
       } catch (aiError) {
-        console.error("parse-voice-task/route: AI parsing failed, falling back:", aiError)
-        // Fall through to fallback
+        // fallback
       }
     }
-
-    // Use enhanced fallback parsing
+    // fallback
     const fallbackTask = parseTaskFallback(transcript)
-    console.log("parse-voice-task/route: Using fallback task parsing:", fallbackTask)
     return NextResponse.json(fallbackTask)
   } catch (error) {
-    console.error("parse-voice-task/route: Top-level error parsing voice task:", error)
     return NextResponse.json(
       {
         title: "",
@@ -125,7 +126,7 @@ Be smart about interpreting natural language. If a field is unclear or not menti
         priority: "medium",
         error: "Failed to process task details.",
       },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }

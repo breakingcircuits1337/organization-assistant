@@ -75,6 +75,9 @@ A comprehensive task management and note-taking application with AI-powered feat
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Your Gemini API key for AI features | Yes |
 | `NEXTAUTH_SECRET` | Secret key for NextAuth.js | Yes |
 | `NEXTAUTH_URL` | Base URL for your application | Yes |
+| `DATABASE_URL` | Prisma database URL (e.g. `file:./dev.db` for SQLite) | Yes |
+| `NEXT_PUBLIC_EMAIL_SERVER` | SMTP connection string for NextAuth email provider | Optional |
+| `NEXT_PUBLIC_EMAIL_FROM` | Email "from" address for NextAuth email provider | Optional |
 
 ### Getting API Keys
 

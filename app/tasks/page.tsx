@@ -19,11 +19,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { CheckCircle2, Clock, Filter, Plus, Search, Trash2, Sparkles, Loader2 } from "lucide-react"
-import { format, isPast, isToday, isTomorrow } from "date-fns"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useVoiceCommandContext } from "@/context/voice-command-context"
 import { useAppStore } from "@/lib/store"
+import { friendlyLabel, toDate, isOverdue } from "@/lib/date"
 import type { Task } from "@/types/Task"
 
 const categories = ["Work", "Personal", "Health", "Learning", "Finance"]
@@ -34,6 +34,7 @@ export default function TasksPage() {
   const updateTask = useAppStore((state) => state.updateTask)
   const deleteTask = useAppStore((state) => state.deleteTask)
   const toggleTaskCompletion = useAppStore((state) => state.toggleTaskCompletion)
+  const applyBulkOperations = useAppStore((state) => state.applyBulkOperations)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState("all")
@@ -47,6 +48,9 @@ export default function TasksPage() {
     priority: "medium" as "low" | "medium" | "high",
   })
   const [isCategorizingTask, setIsCategorizingTask] = useState(false)
+  const [isSuggestingDate, setIsSuggestingDate] = useState(false)
+  const [bulkCommand, setBulkCommand] = useState("")
+  const [isRunningBulk, setIsRunningBulk] = useState(false)
 
   const { pendingTask, setPendingTask, triggerDialog, setTriggerDialog } = useVoiceCommandContext()
 
@@ -90,10 +94,7 @@ export default function TasksPage() {
     } else if (filterStatus === "pending") {
       filtered = filtered.filter((task) => !task.completed)
     } else if (filterStatus === "overdue") {
-      filtered = filtered.filter((task) => {
-        const dueDate = new Date(task.dueDate)
-        return !task.completed && isPast(dueDate)
-      })
+      filtered = filtered.filter((task) => !task.completed && isOverdue(task.dueDate))
     }
 
     return filtered
@@ -123,20 +124,47 @@ export default function TasksPage() {
     setIsDialogOpen(false)
   }
 
+  const handleSuggestDate = async () => {
+    setIsSuggestingDate(true)
+    try {
+      const res = await fetch("/api/ai/suggest-due-date", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTask.title, description: newTask.description }),
+      })
+      if (res.ok) {
+        const { suggestedDate } = await res.json()
+        setNewTask((nt) => ({ ...nt, dueDate: suggestedDate }))
+      }
+    } finally {
+      setIsSuggestingDate(false)
+    }
+  }
+
+  const handleBulkRun = async () => {
+    setIsRunningBulk(true)
+    try {
+      const res = await fetch("/api/ai/bulk-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commandText: bulkCommand }),
+      })
+      if (res.ok) {
+        const ops = await res.json()
+        applyBulkOperations(ops)
+      }
+    } finally {
+      setIsRunningBulk(false)
+      setBulkCommand("")
+    }
+  }
+
   const handleToggleTaskCompletion = (taskId: string) => {
     toggleTaskCompletion(taskId)
   }
 
   const handleDeleteTask = (taskId: string) => {
     deleteTask(taskId)
-  }
-
-  const getTaskDateLabel = (dateString: string) => {
-    const date = new Date(dateString)
-    if (isToday(date)) return "Today"
-    if (isTomorrow(date)) return "Tomorrow"
-    if (isPast(date)) return "Overdue"
-    return format(date, "MMM d, yyyy")
   }
 
   const getPriorityColor = (priority: string) => {
@@ -228,6 +256,15 @@ export default function TasksPage() {
                         value={newTask.dueDate}
                         onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
                       />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-1"
+                        onClick={handleSuggestDate}
+                        disabled={!newTask.title || isSuggestingDate}
+                      >
+                        {isSuggestingDate ? "Suggesting..." : "AI Suggest Date"}
+                      </Button>
                     </div>
                     <div className="grid gap-2">
                       <div className="flex items-center justify-between">
@@ -299,21 +336,21 @@ export default function TasksPage() {
       <nav className="bg-background border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
-            <Link href="/" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Dashboard
-            </Link>
-            <Link href="/tasks" className="border-b-2 border-primary py-4 px-1 text-primary font-medium">
-              Tasks
-            </Link>
-            <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Calendar
-            </Link>
-            <Link href="/notes" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Notes
-            </Link>
-            <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground">
-              Search
-            </Link>
+            <Link href="/" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Dashboard">
+                Dashboard
+              </Link>
+              <Link href="/tasks" className="border-b-2 border-primary py-4 px-1 text-primary font-medium" aria-label="Tasks">
+                Tasks
+              </Link>
+              <Link href="/calendar" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Calendar">
+                Calendar
+              </Link>
+              <Link href="/notes" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Notes">
+                Notes
+              </Link>
+              <Link href="/search" className="py-4 px-1 text-muted-foreground hover:text-foreground" aria-label="Search">
+                Search
+              </Link>
           </div>
         </div>
       </nav>
@@ -363,13 +400,30 @@ export default function TasksPage() {
                 </Select>
               </div>
             </div>
+            <div className="flex flex-col md:flex-row gap-4 mt-4 items-center">
+              <Input
+                placeholder="Ask AI to edit tasks..."
+                value={bulkCommand}
+                onChange={e => setBulkCommand(e.target.value)}
+                className="flex-1"
+                disabled={isRunningBulk}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkRun}
+                disabled={!bulkCommand || isRunningBulk}
+              >
+                {isRunningBulk ? "Running..." : "Run"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         {/* Tasks List */}
         <div className="space-y-4">
           {filteredTasks.map((task) => {
-            const dueDate = new Date(task.dueDate)
+            const dueDate = toDate(task.dueDate)
             return (
               <Card key={task.id} className={`${task.completed ? "opacity-60" : ""}`}>
                 <CardContent className="pt-6">
@@ -392,9 +446,9 @@ export default function TasksPage() {
                         <div className="flex items-center space-x-2 mt-3">
                           <Badge variant="outline">{task.category}</Badge>
                           <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
-                          <Badge variant={isPast(dueDate) && !task.completed ? "destructive" : "secondary"}>
+                          <Badge variant={isOverdue(task.dueDate) && !task.completed ? "destructive" : "secondary"}>
                             <Clock className="w-3 h-3 mr-1" />
-                            {getTaskDateLabel(task.dueDate)}
+                            {friendlyLabel(task.dueDate)}
                           </Badge>
                         </div>
                       </div>
@@ -404,7 +458,9 @@ export default function TasksPage() {
                       size="sm"
                       onClick={() => handleDeleteTask(task.id)}
                       className="text-red-500 hover:text-red-700"
+                      aria-label="Delete Task"
                     >
+                      <span className="sr-only">Delete Task</span>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
