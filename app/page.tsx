@@ -5,11 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, CheckCircle2, Clock, FileText, Plus, Search, TrendingUp } from "lucide-react"
-import { format, isToday, isTomorrow, isPast } from "date-fns"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AIStatusIndicator } from "@/components/ai-status-indicator"
 import { useAppStore } from "@/lib/store"
+import { friendlyLabel, toDate, isOverdue } from "@/lib/date"
 import type { Task } from "@/types/Task"
 import type { Note } from "@/types/Note"
 
@@ -22,7 +22,7 @@ export default function Dashboard() {
     () =>
       tasks.map((task) => ({
         ...task,
-        dueDateObj: new Date(task.dueDate),
+        dueDateObj: toDate(task.dueDate),
       })),
     [tasks]
   )
@@ -32,26 +32,19 @@ export default function Dashboard() {
     () =>
       notes.map((note) => ({
         ...note,
-        createdAtObj: new Date(note.createdAt),
+        createdAtObj: toDate(note.createdAt),
       })),
     [notes]
   )
 
   const upcomingTasks = parsedTasks
-    .filter((task) => !task.completed && !isPast(task.dueDateObj))
+    .filter((task) => !task.completed && !isOverdue(task.dueDate))
     .sort((a, b) => a.dueDateObj.getTime() - b.dueDateObj.getTime())
     .slice(0, 5)
 
-  const overdueTasks = parsedTasks.filter((task) => !task.completed && isPast(task.dueDateObj))
+  const overdueTasks = parsedTasks.filter((task) => !task.completed && isOverdue(task.dueDate))
   const completedTasks = parsedTasks.filter((task) => task.completed)
   const recentNotes = parsedNotes.slice(0, 3)
-
-  const getTaskDateLabel = (dateObj: Date) => {
-    if (isToday(dateObj)) return "Today"
-    if (isTomorrow(dateObj)) return "Tomorrow"
-    if (isPast(dateObj)) return "Overdue"
-    return format(dateObj, "MMM d")
-  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -195,8 +188,8 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <Badge variant={isPast(task.dueDateObj) ? "destructive" : "secondary"}>
-                        {getTaskDateLabel(task.dueDateObj)}
+                      <Badge variant={isOverdue(task.dueDate) ? "destructive" : "secondary"}>
+                        {friendlyLabel(task.dueDate)}
                       </Badge>
                     </div>
                   </div>

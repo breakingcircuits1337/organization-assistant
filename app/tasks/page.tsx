@@ -19,11 +19,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { CheckCircle2, Clock, Filter, Plus, Search, Trash2, Sparkles, Loader2 } from "lucide-react"
-import { format, isPast, isToday, isTomorrow } from "date-fns"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useVoiceCommandContext } from "@/context/voice-command-context"
 import { useAppStore } from "@/lib/store"
+import { friendlyLabel, toDate, isOverdue } from "@/lib/date"
 import type { Task } from "@/types/Task"
 
 const categories = ["Work", "Personal", "Health", "Learning", "Finance"]
@@ -90,10 +90,7 @@ export default function TasksPage() {
     } else if (filterStatus === "pending") {
       filtered = filtered.filter((task) => !task.completed)
     } else if (filterStatus === "overdue") {
-      filtered = filtered.filter((task) => {
-        const dueDate = new Date(task.dueDate)
-        return !task.completed && isPast(dueDate)
-      })
+      filtered = filtered.filter((task) => !task.completed && isOverdue(task.dueDate))
     }
 
     return filtered
@@ -129,14 +126,6 @@ export default function TasksPage() {
 
   const handleDeleteTask = (taskId: string) => {
     deleteTask(taskId)
-  }
-
-  const getTaskDateLabel = (dateString: string) => {
-    const date = new Date(dateString)
-    if (isToday(date)) return "Today"
-    if (isTomorrow(date)) return "Tomorrow"
-    if (isPast(date)) return "Overdue"
-    return format(date, "MMM d, yyyy")
   }
 
   const getPriorityColor = (priority: string) => {
@@ -369,7 +358,7 @@ export default function TasksPage() {
         {/* Tasks List */}
         <div className="space-y-4">
           {filteredTasks.map((task) => {
-            const dueDate = new Date(task.dueDate)
+            const dueDate = toDate(task.dueDate)
             return (
               <Card key={task.id} className={`${task.completed ? "opacity-60" : ""}`}>
                 <CardContent className="pt-6">
@@ -392,9 +381,9 @@ export default function TasksPage() {
                         <div className="flex items-center space-x-2 mt-3">
                           <Badge variant="outline">{task.category}</Badge>
                           <Badge className={getPriorityColor(task.priority)}>{task.priority}</Badge>
-                          <Badge variant={isPast(dueDate) && !task.completed ? "destructive" : "secondary"}>
+                          <Badge variant={isOverdue(task.dueDate) && !task.completed ? "destructive" : "secondary"}>
                             <Clock className="w-3 h-3 mr-1" />
-                            {getTaskDateLabel(task.dueDate)}
+                            {friendlyLabel(task.dueDate)}
                           </Badge>
                         </div>
                       </div>
